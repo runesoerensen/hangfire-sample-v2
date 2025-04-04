@@ -1,0 +1,10 @@
+{
+    "profiles": {
+        "Foo": {
+            "commandName": "Project",
+            "environmentVariables": {
+                "REDIS_URL": "redis://default:@localhost:6379"
+            }
+        }
+    }
+}
