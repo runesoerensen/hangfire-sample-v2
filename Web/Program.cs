@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using Hangfire;
+using Hangfire.Dashboard;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
@@ -48,7 +49,7 @@ public sealed class WorkerMessageTool
     }
 }
 
-public class AllowAllAuthorizationFilter : Hangfire.Dashboard.IDashboardAuthorizationFilter
+public class AllowAllAuthorizationFilter : IDashboardAuthorizationFilter
 {
-    public bool Authorize(Hangfire.Dashboard.DashboardContext context) => true;
+    public bool Authorize(DashboardContext context) => true;
 }
