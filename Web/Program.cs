@@ -44,7 +44,7 @@ public sealed class WorkerMessageTool
     {
         backgroundJobClient.Enqueue(() => Console.WriteLine($"Message from {server.ClientInfo.Name} (version {server.ClientInfo.Version})): {message}"));
 
-        return $"Worker message queued: {message}";
+        return $"Message enqueued: {message}";
     }
 }
 
