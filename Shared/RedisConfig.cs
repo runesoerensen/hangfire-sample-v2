@@ -13,14 +13,20 @@ public class RedisConfig
         var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
 
         if (string.IsNullOrWhiteSpace(redisUrl))
+        {
             throw new InvalidOperationException("REDIS_URL environment variable must be set.");
+        }
 
         if (!Uri.TryCreate(redisUrl, UriKind.Absolute, out var uri))
+        {
             throw new InvalidOperationException("Invalid REDIS_URL format.");
+        }
 
         var userInfo = uri.UserInfo.Split(':');
         if (userInfo.Length != 2)
+        {
             throw new InvalidOperationException("REDIS_URL must be in the format redis://user:password@host:port");
+        }
 
         var isSsl = uri.Scheme == "rediss";
         return new RedisConfig

@@ -37,7 +37,9 @@ public static class DependencyInjection
         };
 
         if (config.SkipCertificateValidation)
+        {
             options.CertificateValidation += (sender, cert, chain, errors) => true;
+        }
 
         return options;
     }
