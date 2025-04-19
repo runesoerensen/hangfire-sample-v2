@@ -1,14 +1,16 @@
-# Background job processing with Hangfire and .NET on Heroku
+# Background job processing on Heroku with Hangfire, MCP and .NET
 
-[Hangfire](https://www.hangfire.io/) is a background job framework for .NET that makes it easy to enqueue, schedule, and process background tasks using persistent storage. This guide walks through running Hangfire with Redis on Heroku using a simple, scalable setup.
+[Hangfire](https://www.hangfire.io/) is a background job framework for .NET that enables easy enqueuing, scheduling, and processing of background tasks using persistent storage. This guide walks through running Hangfire with Redis on Heroku using a clean, scalable architecture.
 
 ## Overview
 
 This sample app demonstrates how to structure a .NET 8.0 project with Hangfire and Redis using a clean separation of concerns:
 
-- **Web** — a minimal ASP.NET Core app that exposes an `/enqueue` endpoint and hosts the Hangfire dashboard.
-- **Worker** — a background service that processes Hangfire jobs.
-- **Shared** — a class library that provides reusable configuration and dependency injection setup for Redis and Hangfire.
+- **Web** — A minimal ASP.NET Core app that exposes an `/enqueue` endpoint and hosts the Hangfire dashboard.
+- **Worker** — A background service that processes Hangfire jobs.
+- **Shared** — A class library that provides reusable configuration and dependency injection setup for Redis and Hangfire.
+
+The app also supports ModelContextProtocol (MCP), which provides a way for AI tools like Cursor to interact with the application and trigger jobs.
 
 This structure mirrors production best practices: the web app handles HTTP traffic and triggers jobs, while a separate worker dyno processes them asynchronously.
 
@@ -16,11 +18,11 @@ Note: Make sure to adapt to your needs. For instance, the Hangfire dashboard is 
 
 ## Local development
 
-You can run and test the sample app locally before deploying to Heroku. The app is preconfigured to use `launchSettings.json` for environment variables, so you won’t need to set them manually.
+You can run and test the sample app locally before deploying to Heroku. The app is preconfigured to use `launchSettings.json` for environment variables, so you won't need to set them manually.
 
 ### 1. Start a Redis server
 
-If you don’t already have Redis installed, you can start it via Homebrew or Docker:
+If you don't already have Redis installed, you can start it via Homebrew or Docker:
 
 **Using Homebrew (macOS):**
 ```sh
@@ -42,42 +44,40 @@ dotnet run --project Web
 dotnet run --project Worker
 ```
 
-The Web app will start on [http://localhost:5000](http://localhost:5000) and expose two routes:
+The Web app will start on [http://localhost:5000](http://localhost:5000) and expose three routes:
 
-- `/enqueue` — adds a job to the queue
-- `/hangfire` — shows the Hangfire dashboard
+- `/enqueue` — Adds a job to the queue
+- `/hangfire` — Shows the Hangfire dashboard
+- `/mcp/sse` — MCP endpoint for AI tool integration
 
-### 3. Enqueue a job
+### 3. Configure Cursor to use MCP
 
-To trigger a background job:
+The application supports ModelContextProtocol (MCP), which allows AI tools like Cursor to interact with it. To configure Cursor to use MCP:
 
-```
-http://localhost:5000/enqueue
-```
-
-This enqueues a simple console job. The Worker app will process the job using Hangfire, and you’ll see it appear in the dashboard at:
-
-```
-http://localhost:5000/hangfire
-```
-
-### How configuration works
-
-Both the Web and Worker apps read Redis connection settings from the `REDIS_URL` environment variable.
-
-Locally, this is set via each app’s `launchSettings.json` file:
-
+1. Create a `.cursor` directory in your project root if it doesn't exist
+2. Create `.cursor/mcp.json` with the following content for local development:
 ```json
-"environmentVariables": {
-  "REDIS_URL": "redis://default:@localhost:6379"
+{
+    "mcpServers": {
+        "hangfire-mcp-sample": {
+            "url": "http://localhost:5000/mcp/sse"
+        }
+    }
 }
 ```
 
-This is the same format Heroku provides in production. SSL and self-signed certificate handling are automatically configured depending on the URL scheme (`redis://` or `rediss://`).
+Once configured, you can use the following MCP tools:
+- `SendMessage` - Send messages to workers
+- `GetJobStorageMetrics` - Get real-time metrics about jobs, queues, and workers
+
+You can test the MCP integration directly in Cursor chat by:
+1. Opening a new chat in Cursor
+2. Asking the AI to "Send a message to the worker" or "Get job metrics"
+3. The AI will use the configured MCP tools to interact with your application
 
 ## Deploying to Heroku
 
-### 1. Create the app and provision Redis
+### 1. Create app and provision Redis
 
 ```sh
 heroku create
@@ -86,7 +86,7 @@ heroku addons:create heroku-redis --wait
 
 Heroku will automatically set the `REDIS_URL` environment variable when provisioned.
 
-### 2. Deploy the code
+### 2. Deploy
 
 Push your code to Heroku:
 
@@ -94,58 +94,75 @@ Push your code to Heroku:
 git push heroku main
 ```
 
-### 3. Scale the Worker process
+The buildpack will automatically detect process types:
+- `web` - Runs the Web application
+- `worker` - Runs the background job processor
 
-The web process will start automatically. To begin processing jobs, scale up the `Worker` process type:
+### 3. Scale the Worker app
+
+The web process will start automatically. To begin processing jobs, scale up the `worker` process type:
 
 ```sh
-heroku scale Worker=1
+heroku scale worker=1
 ```
 
 This runs your background job processor in a separate dyno, letting you scale it independently.
 
-### 4. Enqueue a test job
+### 4. Configure MCP for Heroku
 
-Visit your app:
+Update your `.cursor/mcp.json` to point to your Heroku app:
+```json
+{
+    "mcpServers": {
+        "hangfire-mcp-sample": {
+            "url": "https://YOUR-APP-NAME.herokuapp.com/mcp/sse"
+        }
+    }
+}
+```
 
-```
-heroku open /enqueue
-```
+### 5. Test
 
-This will enqueue a background job, and the Worker dyno will pick it up. You can verify that it ran via the dashboard at:
+Visit these endpoints to test your deployment:
+- `heroku open /enqueue` - Enqueue a background job
+- `heroku open /hangfire` - View the Hangfire dashboard
 
-```
-heroku open /hangfire
-```
+You can also test the MCP integration in Cursor chat, just like in local development. The AI will use the Heroku MCP endpoint to interact with your application.
 
 ## How the code is organized
 
 The project uses a shared `RedisConfig` type to parse the `REDIS_URL` into a strongly-typed object. It includes logic to:
 
-- Handle SSL and Heroku’s self-signed certificates when necessary
+- Handle SSL and Heroku's self-signed certificates when necessary
 - Provide consistent dependency injection across apps
 - Make local and cloud setups behave identically
 
 This logic lives in the **Shared** project and is consumed by both **Web** and **Worker**, avoiding duplication and ensuring consistent setup.
 
-## Customizing your job logic
+### MCP Integration
 
-By default, the sample enqueues a simple `Console.WriteLine` task. To create your own jobs:
+The Model Context Protocol (MCP) integration is set up in the Web project:
 
-1. Define a class with a public method (e.g. `EmailService.Send()`).
-2. Register it in the shared DI setup.
-3. Enqueue it like this:
+- `ModelContextProtocol` and `ModelContextProtocol.AspNetCore` packages are added
+- The MCP server is configured with HTTP transport
+- Custom tools like `WorkerMessageTool` are registered to allow external tools to interact with the application
+- The `/mcp` endpoint is mapped to handle MCP requests
 
-```csharp
-BackgroundJob.Enqueue<EmailService>(s => s.Send("user@example.com"));
-```
+The MCP architecture allows:
+- Registering server-side "tools" that can be discovered and called by clients
+- Real-time communication via SSE (Server-Sent Events)
+- Integration with AI assistants
+- Debugging with the MCP inspector tool
 
 ## Summary
 
 Hangfire makes it easy to add robust, persistent background job processing to your .NET apps on Heroku. By structuring your app into Web, Worker, and Shared components like the ones in this example, you get a clean and scalable architecture that works just as well locally as it does on Heroku.
 
-- Scale your `Worker` and `Web` process types independently.
-- Use Heroku Key-Value Store for job persistence.
-- Monitor jobs with the built-in Hangfire dashboard.
+The addition of MCP support allows AI-powered tools like Cursor to interact with your application programmatically, demonstrating a powerful interface for job management and monitoring.
 
-This approach keeps your apps modular and your infrastructure simple.
+Key benefits:
+- Scale your `worker` and `web` process types independently
+- Use Redis for reliable job persistence
+- Monitor jobs with the built-in Hangfire dashboard
+- Interact with your application through the MCP interface
+- Graceful handling of worker scaling and job queuing
