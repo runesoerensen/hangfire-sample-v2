@@ -39,10 +39,10 @@ public sealed class WorkerMessageTool
 {
     [McpServerTool, Description("Send a message to a worker.")]
     public static string SendMessage(
-        IBackgroundJobClient backgroundJobClient,
+        IBackgroundJobClient backgroundJobClient, IMcpServer server,
         [Description("The message for the worker")] string message)
     {
-        backgroundJobClient.Enqueue(() => Console.WriteLine($"Message from MCP client: {message}"));
+        backgroundJobClient.Enqueue(() => Console.WriteLine($"Message from {server.ClientInfo.Name} (version {server.ClientInfo.Version})): {message}"));
 
         return $"Worker message queued: {message}";
     }
