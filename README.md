@@ -4,7 +4,7 @@
 
 ## Overview
 
-This sample app demonstrates how to structure a .NET 9.0 solution using ASP.NET Core, Hangfire and Redis using a clean separation of concerns:
+This sample app demonstrates how to structure a .NET 9.0 solution using ASP.NET Core, Hangfire and Redis with clear separation of concerns:
 
 - **Web** — A minimal ASP.NET Core app that exposes an `/enqueue` endpoint and hosts the Hangfire dashboard.
 - **Worker** — A background service that processes Hangfire jobs.
