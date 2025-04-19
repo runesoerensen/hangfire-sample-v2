@@ -1,7 +1,9 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using Hangfire;
 using Hangfire.Dashboard;
+using Hangfire.Storage.Monitoring;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
@@ -46,6 +48,13 @@ public sealed class WorkerMessageTool
         backgroundJobClient.Enqueue(() => Console.WriteLine($"Message from {server.ClientInfo.Name} (version {server.ClientInfo.Version})): {message}"));
 
         return $"Message enqueued: {message}";
+    }
+
+    [McpServerTool, Description("Get job storage metrics.")]
+    public static StatisticsDto GetJobStorageMetrics(JobStorage jobStorage)
+    {
+        var monitoring = jobStorage.GetMonitoringApi();
+        return monitoring.GetStatistics();
     }
 }
 
