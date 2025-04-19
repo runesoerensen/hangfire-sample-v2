@@ -15,6 +15,8 @@ var host = builder.Build();
 
 host.Services
     .GetRequiredService<IRecurringJobManager>()
-    .AddOrUpdate("recurring-job", () => Console.WriteLine("Recurring job executed!"), Cron.Minutely);
+    .AddOrUpdate("recurring-job", () =>
+        Console.WriteLine("Recurring job executed!"),
+        Cron.Minutely);
 
 host.Run();
