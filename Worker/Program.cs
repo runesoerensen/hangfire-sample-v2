@@ -1,8 +1,8 @@
-using Shared.Infrastructure;
-using Hangfire;
 using System;
-using Microsoft.Extensions.Hosting;
+using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Shared.Infrastructure;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -13,7 +13,8 @@ builder.Services
 
 var host = builder.Build();
 
-var recurringJobs = host.Services.GetRequiredService<IRecurringJobManager>();
-recurringJobs.AddOrUpdate("recurring-job", () => Console.WriteLine("Recurring job executed!"), Cron.Minutely);
+host.Services
+    .GetRequiredService<IRecurringJobManager>()
+    .AddOrUpdate("recurring-job", () => Console.WriteLine("Recurring job executed!"), Cron.Minutely);
 
 host.Run();

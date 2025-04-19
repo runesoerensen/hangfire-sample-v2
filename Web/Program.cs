@@ -17,7 +17,6 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 });
 
 app.MapGet("/", () => "Hello from .NET + Hangfire!");
-
 app.MapGet("/enqueue", () =>
 {
     BackgroundJob.Enqueue(() => Console.WriteLine("Hello from Hangfire!"));

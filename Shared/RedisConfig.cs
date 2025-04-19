@@ -1,12 +1,10 @@
-using System;
-
 namespace Shared.Infrastructure;
 
 public class RedisConfig
 {
     public required string Host { get; set; }
-    public int Port { get; set; }
     public required string Password { get; set; }
+    public int Port { get; set; }
     public bool Ssl { get; set; }
     public bool SkipCertificateValidation { get; set; }
 
@@ -25,7 +23,6 @@ public class RedisConfig
             throw new InvalidOperationException("REDIS_URL must be in the format redis://user:password@host:port");
 
         var isSsl = uri.Scheme == "rediss";
-
         return new RedisConfig
         {
             Host = uri.Host,

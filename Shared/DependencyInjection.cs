@@ -9,9 +9,9 @@ public static class DependencyInjection
     public static IServiceCollection AddRedis(this IServiceCollection services, RedisConfig config)
     {
         services.AddSingleton(config.ToConfigurationOptions());
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        services.AddSingleton<IConnectionMultiplexer>(serviceProvider =>
         {
-            var options = sp.GetRequiredService<ConfigurationOptions>();
+            var options = serviceProvider.GetRequiredService<ConfigurationOptions>();
             return ConnectionMultiplexer.Connect(options);
         });
 
@@ -20,16 +20,14 @@ public static class DependencyInjection
 
     public static IServiceCollection AddHangfireWithRedis(this IServiceCollection services)
     {
-        services.AddHangfire((sp, cfg) =>
+        return services.AddHangfire((serviceProvider, configuration) =>
         {
-            var connectionMultiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-            cfg.UseRedisStorage(connectionMultiplexer);
+            var connectionMultiplexer = serviceProvider.GetRequiredService<IConnectionMultiplexer>();
+            configuration.UseRedisStorage(connectionMultiplexer);
         });
-
-        return services;
     }
 
-    public static ConfigurationOptions ToConfigurationOptions(this RedisConfig config)
+    private static ConfigurationOptions ToConfigurationOptions(this RedisConfig config)
     {
         var options = new ConfigurationOptions
         {
