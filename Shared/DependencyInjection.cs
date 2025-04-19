@@ -1,4 +1,5 @@
 using Hangfire;
+using Hangfire.Redis.StackExchange;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 
